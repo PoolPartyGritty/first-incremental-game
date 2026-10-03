@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coin Flip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #e6ecf0;
+    --panel: #f6f9fb;
+    --ink: #1b2733;
+    --muted: #5b6b78;
+    --line: #c3cfd8;
+    --brass: #c99a2e;
+    --brass-light: #f0d68a;
+    --silver: #aeb9c2;
+    --silver-light: #e4eaee;
+    --focus: #1d6fd6;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Familjen Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+  main { width: 100%; max-width: 28rem; }
+  h1 { font-size: 1.5rem; margin: 0 0 1.5rem; font-weight: 700; }
+  h2 { font-size: 1rem; margin: 0 0 .25rem; font-weight: 600; }
+
+  .play {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    padding: 2rem 1.5rem 1.5rem;
+    text-align: center;
+  }
+
+  /* Coin */
+  .scene { width: 9rem; height: 9rem; margin: 0 auto 1.5rem; perspective: 700px; }
+  .coin {
+    width: 100%; height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 1s cubic-bezier(.2, .7, .25, 1);
+  }
+  .face {
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 4rem; font-weight: 700;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    box-shadow: inset 0 0 0 .4rem rgba(0,0,0,.12), inset 0 0 0 .55rem rgba(255,255,255,.35);
+  }
+  .heads { background: radial-gradient(circle at 35% 30%, var(--brass-light), var(--brass)); color: #6b4c0c; }
+  .tails { background: radial-gradient(circle at 35% 30%, var(--silver-light), var(--silver)); color: #4a5863; transform: rotateY(180deg); }
+
+  .points { font-size: 3rem; font-weight: 700; line-height: 1; margin: 0; }
+  .points-label { color: var(--muted); margin: .25rem 0 1.25rem; }
+  .result { min-height: 1.5rem; margin: 0 0 1rem; font-weight: 600; }
+
+  button {
+    font: inherit;
+    cursor: pointer;
+    border-radius: .6rem;
+    border: 1px solid var(--ink);
+    background: transparent;
+    color: var(--ink);
+    padding: .6rem 1rem;
+  }
+  button:hover:not(:disabled) { background: rgba(27,39,51,.07); }
+  button:disabled { opacity: .5; cursor: default; }
+  button:focus-visible, textarea:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .flip { background: var(--ink); color: #fff; font-size: 1.15rem; font-weight: 600; padding: .8rem 2.5rem; }
+  .flip:hover:not(:disabled) { background: #2d3f50; }
+
+  .stats { display: flex; justify-content: center; gap: 1.5rem; margin: 1.25rem 0 0; color: var(--muted); font-size: .95rem; }
+
+  /* Save panel */
+  .save { margin-top: 1.5rem; }
+  .save p { margin: 0 0 .75rem; color: var(--muted); font-size: .95rem; }
+  textarea {
+    width: 100%; height: 5.5rem; resize: vertical;
+    font: .85rem ui-monospace, Consolas, monospace;
+    padding: .6rem; border-radius: .6rem;
+    border: 1px solid var(--line); background: #fff; color: var(--ink);
+  }
+  .row { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .6rem; }
+  .danger { margin-left: auto; border-color: #b3372c; color: #b3372c; }
+  .danger:hover:not(:disabled) { background: rgba(179,55,44,.08); }
+  .status { min-height: 1.4rem; margin: .6rem 0 0; font-size: .95rem; }
+
+  @media (prefers-reduced-motion: reduce) { .coin { transition-duration: .01s !important; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Coin Flip</h1>
+
+  <section class="play" aria-label="Game">
+    <div class="scene">
+      <div class="coin" id="coin">
+        <div class="face heads" aria-hidden="true">H</div>
+        <div class="face tails" aria-hidden="true">T</div>
+      </div>
+    </div>
+
+    <p class="points" id="points">0</p>
+    <p class="points-label">points</p>
+
+    <p class="result" id="result" aria-live="polite"></p>
+    <button class="flip" id="flip">Flip coin</button>
+
+    <div class="stats">
+      <span>Flips: <strong id="flips">0</strong></span>
+      <span>Heads: <strong id="heads">0</strong></span>
+      <span>Tails: <strong id="tails">0</strong></span>
+    </div>
+  </section>
+
+  <section class="save" aria-label="Save data">
+    <h2>Save</h2>
+    <p>Your progress saves automatically in this browser. Export a save code to back it up or move it to another device.</p>
+    <textarea id="code" spellcheck="false" aria-label="Save code" placeholder="Click Export to get your save code, or paste one here and click Import."></textarea>
+    <div class="row">
+      <button id="export">Export</button>
+      <button id="import">Import</button>
+      <button id="reset" class="danger">Reset</button>
+    </div>
+    <p class="status" id="status" aria-live="polite"></p>
+  </section>
+</main>
+
+<script>
+(() => {
+  const SAVE_KEY = "coinflip-save-v1";
+  const FLIP_MS = 1000;
+
+  const fresh = () => ({ v: 1, points: 0, flips: 0, heads: 0, tails: 0, last: "heads" });
+  let state = load() || fresh();
+  let rotation = 0;
+  let busy = false;
+
+  const $ = id => document.getElementById(id);
+  const coin = $("coin"), flipBtn = $("flip"), code = $("code"), statusEl = $("status");
+
+  /* ---------- Save / load ---------- */
+  function sanitize(obj) {
+    if (!obj || typeof obj !== "object") return null;
+    const n = x => (Number.isFinite(x) && x >= 0 ? Math.floor(x) : null);
+    const points = n(obj.points), flips = n(obj.flips), heads = n(obj.heads), tails = n(obj.tails);
+    if ([points, flips, heads, tails].includes(null)) return null;
+    return { v: 1, points, flips, heads, tails, last: obj.last === "tails" ? "tails" : "heads" };
+  }
+
+  function save() {
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) { /* storage may be blocked */ }
+  }
+
+  function load() {
+    try { return sanitize(JSON.parse(localStorage.getItem(SAVE_KEY))); } catch (e) { return null; }
+  }
+
+  const encode = s => btoa(JSON.stringify(s));
+  const decode = str => sanitize(JSON.parse(atob(str.trim())));
+
+  function say(msg, isError) {
+    statusEl.textContent = msg;
+    statusEl.style.color = isError ? "#b3372c" : "#1f7a45";
+  }
+
+  /* ---------- Display ---------- */
+  function render() {
+    $("points").textContent = state.points.toLocaleString();
+    $("flips").textContent = state.flips.toLocaleString();
+    $("heads").textContent = state.heads.toLocaleString();
+    $("tails").textContent = state.tails.toLocaleString();
+  }
+
+  function showFace(face) {
+    // Snap the coin to a face with no animation (used on load, import, reset).
+    coin.style.transition = "none";
+    rotation = face === "tails" ? 180 : 0;
+    coin.style.transform = `rotateY(${rotation}deg)`;
+    void coin.offsetWidth; // force reflow so the next flip animates
+    coin.style.transition = "";
+  }
+
+  /* ---------- Gameplay ---------- */
+  function flip() {
+    if (busy) return;
+    busy = true;
+    flipBtn.disabled = true;
+    $("result").textContent = "";
+
+    const isHeads = Math.random() < 0.5;
+    // Spin three full turns, then land on the chosen face.
+    rotation = Math.ceil(rotation / 360) * 360 + 1080 + (isHeads ? 0 : 180);
+    coin.style.transform = `rotateY(${rotation}deg)`;
+
+    setTimeout(() => {
+      state.flips++;
+      if (isHeads) { state.heads++; state.points += 1; } else { state.tails++; }
+      state.last = isHeads ? "heads" : "tails";
+      $("result").textContent = isHeads ? "Heads! +1 point" : "Tails. No point.";
+      render();
+      save();
+      busy = false;
+      flipBtn.disabled = false;
+      flipBtn.focus();
+    }, FLIP_MS);
+  }
+
+  /* ---------- Buttons ---------- */
+  flipBtn.addEventListener("click", flip);
+
+  $("export").addEventListener("click", async () => {
+    code.value = encode(state);
+    code.select();
+    try {
+      await navigator.clipboard.writeText(code.value);
+      say("Save code copied to your clipboard.");
+    } catch (e) {
+      say("Save code is in the box above. Copy it to keep it.");
+    }
+  });
+
+  $("import").addEventListener("click", () => {
+    if (!code.value.trim()) return say("Paste a save code into the box first.", true);
+    let loaded;
+    try { loaded = decode(code.value); } catch (e) { loaded = null; }
+    if (!loaded) return say("That save code isn't valid. Check that you copied all of it.", true);
+    if (!confirm("Importing replaces your current progress. Continue?")) return;
+    state = loaded;
+    save(); render(); showFace(state.last);
+    $("result").textContent = "";
+    say("Save imported.");
+  });
+
+  $("reset").addEventListener("click", () => {
+    if (!confirm("Reset all progress? This can't be undone unless you exported a save code.")) return;
+    state = fresh();
+    save(); render(); showFace("heads");
+    $("result").textContent = "";
+    code.value = "";
+    say("Progress reset.");
+  });
+
+  /* ---------- Start ---------- */
+  render();
+  showFace(state.last);
+})();
+</script>
+</body>
+</html>
